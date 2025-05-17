@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<article class="container mt-5">
+    <!-- Заголовок -->
+    <h1 class="mb-3">{{ post.title }}</h1>
+    
+    <!-- Мета-информация -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <span class="text-muted">Автор: {{ post.author }}</span>
+        <span class="text-muted">{{ post.date.strftime('%d.%m.%Y в %H:%M') }}</span>
+    </div>
+
+    <!-- Изображение -->
+    <img src="{{ url_for('static', filename='images/' + post.image_id) }}"
+         class="img-fluid rounded mb-4"
+         alt="{{ post.title }}">
+
+    <!-- Текст поста -->
+    <div class="post-content mb-5">
+        {{ post.text }}
+    </div>
+
+    <!-- Форма комментария -->
+    <section class="mb-5">
+        <h3>Оставьте комментарий</h3>
+        <form method="POST">
+            <div class="mb-3">
+                <textarea class="form-control" 
+                          name="comment" 
+                          rows="3"
+                          placeholder="Ваш комментарий..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Отправить</button>
+        </form>
+    </section>
+
+    <!-- Комментарии -->
+    <section class="comments">
+        <h3 class="mb-4">Комментарии</h3>
+        {% for comment in post.comments %}
+            {% include '_comment.html' %}
+        {% endfor %}
+    </section>
+</article>
+{% endblock %}
