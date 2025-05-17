@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>Cookie</h1>
+    <div class="alert alert-info">
+        {% if cookie_value %}
+            Значение cookie: {{ cookie_value }}
+        {% else %}
+            Cookie не установлено
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
