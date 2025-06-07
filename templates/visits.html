@@ -4,7 +4,7 @@
 <div class="container my-5">
     <h1>Счётчик посещений</h1>
     <div class="alert alert-info">
-        Вы посетили эту страницу {{ visits }} раз
+        You have visited this page {{visits}} {{ "time" if visits == 1 else "times" }}.
     </div>
 </div>
 {% endblock %}

@@ -1,10 +1,11 @@
+import os
 import re
 import random
 from functools import lru_cache
-from faker import Faker
-import os
 from flask import Flask, render_template, request, make_response, redirect, url_for, abort, flash, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from faker import Faker
+from urllib.parse import urlsplit
 
 fake = Faker()
 
@@ -12,9 +13,14 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'  # Добавьте секретный ключ
 application = app
 
-# Настройка LoginManager
+# Правильная инициализация LoginManager
 login_manager = LoginManager()
 login_manager.init_app(app)
+
+# Настройка LoginManager
+login_manager.login_view = 'login'  # имя маршрута для входа
+login_manager.login_message = 'You must log in'  # сообщение для неавторизованных пользователей
+login_manager.login_message_category = 'info'  # категория сообщения (используется в классе alert)
 
 # Загрузчик пользователя
 @login_manager.user_loader
@@ -53,6 +59,7 @@ def posts_list():
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/posts')
 def posts():
@@ -142,6 +149,19 @@ def visits():
     session['visits_count'] = session.get('visits_count', 0) + 1
     return render_template('visits.html', visits=session['visits_count'])
 
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.username = username
+        
+    @staticmethod
+    def get_by_username(username):
+        # Здесь можно добавить логику поиска пользователя в БД
+        return User(username) if username == 'user' else None
+        
+    def get_id(self):
+        return self.username
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -152,13 +172,23 @@ def login():
         if username == 'user' and password == 'qwerty':
             user = User(username)
             login_user(user, remember=remember)
+            
+            # Получаем URL для редиректа из параметров запроса
+            next_url = request.args.get('next')
+            
+            # Проверяем, пришел ли пользователь со страницы secret
+            if next_url and urlsplit(next_url).netloc == '' and next_url.endswith('/secret'):
+                return redirect(next_url)
+            
+            # Если не пришли с secret, редиректим на главную
             flash('Successful login', 'success')
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('index'))
+            return redirect('/')
+            
         else:
             flash('Incorrect username or password', 'danger')
     
-    return render_template('login.html')
+    return render_template('login.html') 
+
 
 @app.route('/logout')
 @login_required
