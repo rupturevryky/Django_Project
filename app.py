@@ -1,12 +1,25 @@
+import re
 import random
 from functools import lru_cache
-from flask import Flask, render_template, abort  
 from faker import Faker
+import os
+from flask import Flask, render_template, request, make_response, redirect, url_for, abort, flash, session
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 
 fake = Faker()
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your-secret-key-here'  # Добавьте секретный ключ
 application = app
+
+# Настройка LoginManager
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# Загрузчик пользователя
+@login_manager.user_loader
+def load_user(user_id):
+    return User(user_id)
 
 images_ids = ['7d4e9175-95ea-4c5f-8be5-92a6b708bb3c',
               '2d2ab7df-cdbc-48a8-a936-35bba702def5',
@@ -61,6 +74,67 @@ def about():
 def page_not_found(e):
     return render_template('404.html'), 404
 
+@app.route('/url_params')
+def url_params():
+    return render_template('url_params.html', params=request.args)
+
+@app.route('/headers')
+def headers():
+    return render_template('headers.html', headers=request.headers)
+
+@app.route('/cookies')
+def cookies():
+    cookie_value = request.cookies.get('lab2_cookie')
+    response = make_response(render_template('cookies.html', cookie_value=cookie_value))
+    
+    if not cookie_value:
+        response.set_cookie('lab2_cookie', 'Hello_from_Lab2!', max_age=60*5)
+    else:
+        response.delete_cookie('lab2_cookie')
+
+    return response
+
+@app.route('/form_params', methods=['GET', 'POST'])
+def form_params():
+    data = {}
+    if request.method == 'POST':
+        data = dict(request.form)
+    return render_template('form_params.html', data=data)
+
+@app.route('/phone', methods=['GET', 'POST'])
+def phone():
+    error = None
+    formatted = None
+    phone_value = request.form.get('phone', '') if request.method == 'POST' else ''
+
+    if request.method == 'POST' and phone_value.strip():
+        # Удаляем все нецифровые символы кроме +
+        cleaned = re.sub(r'[^\d+]', '', phone_value)
+        digits = re.sub(r'\D', '', phone_value)  # Только цифры
+        
+        # Проверка допустимых символов
+        if not re.match(r'^[\d+\-(). ]+$', phone_value):
+            error = 'Недопустимый ввод. В номере встречаются недопустимые символы.'
+        else:
+            # Проверка длины
+            if digits.startswith(('7', '8')):
+                required_length = 11
+            else:
+                required_length = 10
+                
+            if len(digits) != required_length:
+                error = 'Недопустимый ввод. Неверное количество цифр.'
+            else:
+                # Форматирование
+                last_10 = digits[-10:]
+                formatted = f'8-{last_10[0:3]}-{last_10[3:6]}-{last_10[6:8]}-{last_10[8:10]}'
+
+    return render_template('phone.html',
+                         error=error,
+                         phone=phone_value,
+                         formatted=formatted)
+
+
 # Лабораторная работа №3
 @app.route('/visits')
 def visits():
@@ -78,11 +152,11 @@ def login():
         if username == 'user' and password == 'qwerty':
             user = User(username)
             login_user(user, remember=remember)
-            flash('Вы успешно вошли в систему!', 'success')
+            flash('Successful login', 'success')
             next_page = request.args.get('next')
             return redirect(next_page or url_for('index'))
         else:
-            flash('Неверное имя пользователя или пароль', 'danger')
+            flash('Incorrect username or password', 'danger')
     
     return render_template('login.html')
 
@@ -90,10 +164,14 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash('Вы вышли из системы', 'info')
+    flash('You have logged out of the system', 'info')
     return redirect(url_for('index'))
 
 @app.route('/secret')
 @login_required
 def secret():
     return render_template('secret.html')
+
+
+# if __name__ == '__main__':
+#     app.run()
