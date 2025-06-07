@@ -60,3 +60,40 @@ def about():
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
+
+# Лабораторная работа №3
+@app.route('/visits')
+def visits():
+    # Счетчик посещений
+    session['visits_count'] = session.get('visits_count', 0) + 1
+    return render_template('visits.html', visits=session['visits_count'])
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        remember = request.form.get('remember') == 'on'
+        
+        if username == 'user' and password == 'qwerty':
+            user = User(username)
+            login_user(user, remember=remember)
+            flash('Вы успешно вошли в систему!', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
+        else:
+            flash('Неверное имя пользователя или пароль', 'danger')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Вы вышли из системы', 'info')
+    return redirect(url_for('index'))
+
+@app.route('/secret')
+@login_required
+def secret():
+    return render_template('secret.html')
